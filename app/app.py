@@ -1,13 +1,13 @@
 from contextlib import asynccontextmanager
-from typing import Optional, Type, Sequence
+from typing import Optional, Sequence
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tronpy_client import parse_and_write
-from db import init_db, get_session, drop_db
-from models import WalletQuery, PydWalletQuery, PydWalletQueryBase
+from app.parser.tronpy_client import parse_and_write
+from db.db import init_db, get_session
+from app.db.models import WalletQuery, PydWalletQuery, PydWalletQueryBase
 
 
 @asynccontextmanager
