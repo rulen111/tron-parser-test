@@ -2,10 +2,12 @@ import asyncio
 import os
 from typing import AsyncIterator
 
+from sqlalchemy import update
 from tronpy import AsyncTron
 from tronpy.providers import HTTPProvider
 
-from models import PydWalletQuery
+from db import get_session
+from models import WalletQuery
 
 
 async def get_client() -> AsyncIterator[AsyncTron]:
@@ -21,18 +23,25 @@ async def get_client() -> AsyncIterator[AsyncTron]:
         yield client
 
 
-async def parse_address(address: str, tr_client: AsyncTron) -> PydWalletQuery:
+async def parse_and_write(query: WalletQuery) -> None:
+    query_id, address = query.query_id, query.address
+    db_session = await anext(get_session())
+
+    tr_client = await anext(get_client())
     balance, bandwidth, resource = await asyncio.gather(
         tr_client.get_account_balance(address),
         tr_client.get_bandwidth(address),
         tr_client.get_account_resource(address),
     )
 
-    query = PydWalletQuery(
-        address=address,
-        balance=balance,
-        bandwidth=bandwidth,
-        energy=resource.get("TotalEnergyLimit", None),
+    stmt = (
+        update(WalletQuery)
+        .where(WalletQuery.query_id == query_id)
+        .values(
+            balance=balance,
+            bandwidth=bandwidth,
+            energy=resource.get("TotalEnergyLimit", None),
+        )
     )
-
-    return query
+    await db_session.execute(stmt)
+    await db_session.commit()

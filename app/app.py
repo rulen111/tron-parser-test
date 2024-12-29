@@ -1,18 +1,18 @@
 from contextlib import asynccontextmanager
 from typing import Optional, Type, Sequence
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from tronpy import AsyncTron
 
-from tronpy_client import get_client, parse_address
-from db import init_db, get_session
+from tronpy_client import parse_and_write
+from db import init_db, get_session, drop_db
 from models import WalletQuery, PydWalletQuery, PydWalletQueryBase
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # await drop_db()
     await init_db()
     yield
 
@@ -36,8 +36,8 @@ async def get_queries(
 async def get_queries(
         query_id: int,
         db_session: AsyncSession = Depends(get_session),
-) -> Type[PydWalletQuery]:
-    query = await db_session.get(PydWalletQuery, query_id)
+) -> PydWalletQuery:
+    query = await db_session.get(WalletQuery, query_id)
     if not query:
         raise HTTPException(status_code=404, detail="Query not found")
 
@@ -47,14 +47,15 @@ async def get_queries(
 @app.post("/queries")
 async def create_query(
         req: PydWalletQueryBase,
+        background_tasks: BackgroundTasks,
         db_session: AsyncSession = Depends(get_session),
-        tr_client: AsyncTron = Depends(get_client),
 ) -> PydWalletQuery:
     address = req.address
-    query = await parse_address(address, tr_client)
+    query = WalletQuery(address=address)
 
-    query_db = WalletQuery(**query.model_dump())
-    db_session.add(query_db)
+    db_session.add(query)
     await db_session.commit()
+    await db_session.refresh(query)
+    background_tasks.add_task(parse_and_write, query)
 
     return query
