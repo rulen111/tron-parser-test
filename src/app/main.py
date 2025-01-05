@@ -1,13 +1,13 @@
 from contextlib import asynccontextmanager
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Type
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.parser.tronpy_client import parse_and_write
-from db.db import init_db, get_session
-from app.db.models import WalletQuery, PydWalletQuery, PydWalletQueryBase
+from tronpy_client import parse_and_write
+from db import init_db, get_session
+from models import WalletQuery, PydWalletQuery, PydWalletQueryBase
 
 
 @asynccontextmanager
@@ -26,6 +26,7 @@ async def get_queries(
         limit: Optional[int] = 10,
         db_session: AsyncSession = Depends(get_session),
 ) -> Sequence[PydWalletQuery]:
+
     stmt = select(WalletQuery)
     result = list((await db_session.execute(stmt)).scalars().all())
 
@@ -36,7 +37,8 @@ async def get_queries(
 async def get_queries(
         query_id: int,
         db_session: AsyncSession = Depends(get_session),
-) -> PydWalletQuery:
+) -> Type[WalletQuery]:
+
     query = await db_session.get(WalletQuery, query_id)
     if not query:
         raise HTTPException(status_code=404, detail="Query not found")
@@ -50,6 +52,7 @@ async def create_query(
         background_tasks: BackgroundTasks,
         db_session: AsyncSession = Depends(get_session),
 ) -> PydWalletQuery:
+
     address = req.address
     query = WalletQuery(address=address)
 

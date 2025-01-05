@@ -6,8 +6,8 @@ from sqlalchemy import update
 from tronpy import AsyncTron
 from tronpy.providers import HTTPProvider
 
-from app.db.db import get_session
-from app.db.models import WalletQuery
+from db import get_session
+from models import WalletQuery
 
 
 async def get_client() -> AsyncIterator[AsyncTron]:

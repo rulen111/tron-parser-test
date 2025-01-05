@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: .
+      context: src
     depends_on:
       - postgres
     restart: unless-stopped
