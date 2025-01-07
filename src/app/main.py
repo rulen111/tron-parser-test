@@ -27,10 +27,10 @@ async def get_queries(
         db_session: AsyncSession = Depends(get_session),
 ) -> Sequence[PydWalletQuery]:
 
-    stmt = select(WalletQuery)
+    stmt = select(WalletQuery).limit(limit).offset(skip)
     result = list((await db_session.execute(stmt)).scalars().all())
 
-    return result[skip: skip + limit]
+    return result
 
 
 @app.get("/queries/{query_id}")
