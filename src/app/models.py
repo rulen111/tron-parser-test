@@ -2,12 +2,14 @@ import datetime
 import decimal
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import Integer, Numeric, CheckConstraint, Text, BigInteger, Index, DateTime, func
 from sqlalchemy.orm import declarative_base, Mapped, mapped_column
 
 
 class PydWalletQueryBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     address: str
 
 

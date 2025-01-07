@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
-from typing import Optional, Sequence, Type
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tronpy_client import parse_and_write
+from tronpy_client import update_query
 from db import init_db, get_session
 from models import WalletQuery, PydWalletQuery, PydWalletQueryBase
 
@@ -25,7 +25,7 @@ async def get_queries(
         skip: Optional[int] = 0,
         limit: Optional[int] = 10,
         db_session: AsyncSession = Depends(get_session),
-) -> Sequence[PydWalletQuery]:
+) -> list[PydWalletQuery]:
 
     stmt = select(WalletQuery).limit(limit).offset(skip)
     result = list((await db_session.execute(stmt)).scalars().all())
@@ -37,11 +37,13 @@ async def get_queries(
 async def get_queries(
         query_id: int,
         db_session: AsyncSession = Depends(get_session),
-) -> Type[WalletQuery]:
+) -> PydWalletQuery:
 
     query = await db_session.get(WalletQuery, query_id)
     if not query:
         raise HTTPException(status_code=404, detail="Query not found")
+
+    query = PydWalletQuery.model_validate(query)
 
     return query
 
@@ -59,6 +61,8 @@ async def create_query(
     db_session.add(query)
     await db_session.commit()
     await db_session.refresh(query)
-    background_tasks.add_task(parse_and_write, query)
+    background_tasks.add_task(update_query, query, None, None)
+
+    query = PydWalletQuery.model_validate(query)
 
     return query

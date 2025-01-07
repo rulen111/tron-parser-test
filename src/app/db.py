@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
 
 import models
 
-engine = create_async_engine(os.getenv("DB_URL"))
+engine = create_async_engine(os.getenv("DB_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/tronparser"))
 
 
 async def init_db():
