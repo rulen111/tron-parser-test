@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from decimal import Decimal
 from typing import AsyncIterator, Optional, Any
 
 from sqlalchemy import update
@@ -28,14 +27,10 @@ async def get_client() -> AsyncIterator[AsyncTron]:
 
 
 async def parse_wallet(
-        query_id: int,
         address: str,
-        tr_client: Optional[AsyncTron] = None,
+        tr_client: AsyncTron,
 ) -> dict[str, Any]:
     result = dict()
-
-    if not tr_client:
-        tr_client = await anext(get_client())
 
     try:
         balance, bandwidth, resource = await asyncio.gather(
@@ -44,11 +39,11 @@ async def parse_wallet(
             tr_client.get_account_resource(address),
         )
     except AddressNotFound:
-        logging.warning(f"Query #{query_id}: Address {address} not found")
+        logging.warning(f"Address {address} not found")
     except BadAddress:
-        logging.warning(f"Query #{query_id}: Address {address} is incorrect")
+        logging.warning(f"Address {address} is incorrect")
     except Exception as err:
-        logging.warning(f"Query #{query_id}: Address {address} unknown error. {err}")
+        logging.warning(f"Address {address} unknown error. {err}")
     else:
         result.update({
             "balance": balance,
@@ -59,22 +54,31 @@ async def parse_wallet(
     return result
 
 
-async def update_query(
+async def update_db_entry(
+        query_id: int,
+        data: dict[str, Any],
+        db_session: AsyncSession,
+) -> None:
+
+    stmt = (
+        update(WalletQuery)
+        .where(WalletQuery.query_id == query_id)
+        .values(**data)
+    )
+
+    await db_session.execute(stmt)
+    await db_session.commit()
+
+
+async def process_query(
         query: WalletQuery,
-        db_session: Optional[AsyncSession] = None,
-        tr_client: Optional[AsyncTron] = None,
 ) -> None:
     query_id, address = query.query_id, query.address
-    if not db_session:
-        db_session = await anext(get_session())
 
-    data = await parse_wallet(query_id, address, tr_client)
+    tr_client = await anext(get_client())
+    data = await parse_wallet(address, tr_client)
+
     if data:
-        stmt = (
-            update(WalletQuery)
-            .where(WalletQuery.query_id == query_id)
-            .values(**data)
-        )
+        db_session = await anext(get_session())
+        await update_db_entry(query_id, data, db_session)
 
-        await db_session.execute(stmt)
-        await db_session.commit()
