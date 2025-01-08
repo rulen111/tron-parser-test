@@ -65,6 +65,8 @@ async def update_query(
         tr_client: Optional[AsyncTron] = None,
 ) -> None:
     query_id, address = query.query_id, query.address
+    if not db_session:
+        db_session = await anext(get_session())
 
     data = await parse_wallet(query_id, address, tr_client)
     if data:
@@ -74,7 +76,5 @@ async def update_query(
             .values(**data)
         )
 
-        if not db_session:
-            db_session = await anext(get_session())
         await db_session.execute(stmt)
         await db_session.commit()
