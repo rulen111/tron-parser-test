@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-from decimal import Decimal
 from typing import AsyncIterator, Optional, Any
 
 from sqlalchemy import update
@@ -10,8 +9,8 @@ from tronpy import AsyncTron
 from tronpy.exceptions import AddressNotFound, BadAddress
 from tronpy.providers import HTTPProvider
 
-from db import get_session
-from models import WalletQuery
+from src.db import get_session
+from src.models import WalletQuery
 
 
 async def get_client() -> AsyncIterator[AsyncTron]:
@@ -78,3 +77,4 @@ async def update_query(
 
         await db_session.execute(stmt)
         await db_session.commit()
+

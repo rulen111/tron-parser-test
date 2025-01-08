@@ -4,19 +4,19 @@ from collections.abc import AsyncIterator
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
 
-import models
+from src.models import Base
 
 engine = create_async_engine(os.getenv("DB_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/tronparser"))
 
 
 async def init_db():
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
 
 
 async def drop_db():
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 async def get_session() -> AsyncIterator[AsyncSession]:
