@@ -1,12 +1,12 @@
-import os
 from collections.abc import AsyncIterator
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
 
+from src.config import settings
 from src.models import Base
 
-engine = create_async_engine(os.getenv("DB_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/tronparser"))
+engine = create_async_engine(settings.DB_URL)
 
 
 async def init_db():

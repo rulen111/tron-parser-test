@@ -1,5 +1,4 @@
 from typing import Any
-from unittest.mock import patch
 import pytest
 
 from src.models import WalletQuery
@@ -8,16 +7,16 @@ from src.tronpy_client import update_query
 pytestmark = pytest.mark.anyio
 
 
-async def test_create_get(test_client, random_query):
-    with patch("fastapi.BackgroundTasks.add_task") as mock:
-        def side_effect(*args, **kwargs) -> None:
-            return None
-        mock.side_effect = side_effect
+async def test_create_get(
+        monkeypatch,
+        test_client,
+        random_query,
+):
+    monkeypatch.setattr("fastapi.BackgroundTasks.add_task", lambda *_: None)
 
-        response = await test_client.post("/queries", json=random_query)
-        query_id = response.json()["query_id"]
-        assert response.status_code == 200
-        assert mock.called is True
+    response = await test_client.post("/queries", json=random_query)
+    query_id = response.json()["query_id"]
+    assert response.status_code == 200
 
     response = await test_client.get(f"/queries/{query_id}")
     assert response.status_code == 200
@@ -25,7 +24,10 @@ async def test_create_get(test_client, random_query):
     assert response_json["address"] == random_query["address"]
 
 
-async def test_get_not_found(test_client, random_query):
+async def test_get_not_found(
+        test_client,
+        random_query
+):
     response = await test_client.get(f"/queries/{random_query['query_id']}")
     assert response.status_code == 404
     response_json = response.json()

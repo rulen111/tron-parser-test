@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 from typing import AsyncIterator, Optional, Any
 
 from sqlalchemy import update
@@ -9,19 +8,20 @@ from tronpy import AsyncTron
 from tronpy.exceptions import AddressNotFound, BadAddress
 from tronpy.providers import HTTPProvider
 
+from src.config import settings
 from src.db import get_session
 from src.models import WalletQuery
 
 
 async def get_client() -> AsyncIterator[AsyncTron]:
-    api_key = os.getenv("TRONPY_API_KEY", None)
-    timeout = float(os.getenv("TRONPY_TIMEOUT", 10.))
+    api_key = settings.TRONPY_API_KEY
+    timeout = settings.TRONPY_TIMEOUT
     provider = HTTPProvider(
         timeout=timeout,
         api_key=api_key
     ) if api_key else None
 
-    network = os.getenv("TRONPY_NETWORK", "nile")
+    network = settings.TRONPY_NETWORK
     async with AsyncTron(network=network, provider=provider) as client:
         yield client
 

@@ -1,5 +1,4 @@
 import decimal
-import os
 import random
 from typing import AsyncIterator
 
@@ -9,25 +8,24 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from tronpy import AsyncTron
 from tronpy.providers import HTTPProvider
 
-from src import models
+from src.config import settings
+from src.models import Base
 from src.db import get_session
 from src.main import app
 from src.models import WalletQuery
 
-engine = create_async_engine(
-    os.getenv("TEST_DB_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/test_tronparser")
-)
+engine = create_async_engine(settings.DB_URL)
 
 
 @pytest.fixture(scope="module")
 async def async_engine():
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.create_all)
+        await conn.run_sync(Base.metadata.create_all)
 
     yield engine
 
     async with engine.begin() as conn:
-        await conn.run_sync(models.Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.fixture(scope="function")
@@ -49,21 +47,21 @@ async def test_client(test_db_session) -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_session] = override_get_session
     async with AsyncClient(
             transport=ASGITransport(app=app),
-            base_url=os.getenv("TEST_APP_BASE_URL", "http://test"),
+            base_url=settings.APP_BASE_URL
     ) as async_client:
         yield async_client
 
 
 @pytest.fixture(scope="function")
 async def test_tronpy_client() -> AsyncIterator[AsyncTron]:
-    api_key = os.getenv("TRONPY_TEST_API_KEY", None)
-    timeout = float(os.getenv("TRONPY_TEST_TIMEOUT", 10.))
+    api_key = settings.TRONPY_API_KEY
+    timeout = settings.TRONPY_TIMEOUT
     provider = HTTPProvider(
         timeout=timeout,
         api_key=api_key
     ) if api_key else None
 
-    network = os.getenv("TRONPY_TEST_NETWORK", "nile")
+    network = settings.TRONPY_NETWORK
     async with AsyncTron(network=network, provider=provider) as client:
         yield client
 
