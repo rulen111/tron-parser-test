@@ -1,4 +1,6 @@
+import decimal
 import os
+import random
 from typing import AsyncIterator
 
 import pytest
@@ -70,13 +72,19 @@ async def test_tronpy_client() -> AsyncIterator[AsyncTron]:
 async def random_query(test_tronpy_client) -> dict[str, str]:
     address = test_tronpy_client.generate_address().get("base58check_address")
     return {
-        "query_id": 1,
-        "address": "TTzPiwbBedv7E8p4FkyPyeqq4RVoqRL3TW",
+        "query_id": random.randint(1, 1000),
+        "address": address,
     }
 
 
-# @pytest.fixture(scope="function")
-# def random_query_db(test_tronpy_client) -> WalletQuery:
-#     address = test_tronpy_client.generate_address().get("base58check_address")
-#     query = WalletQuery(address=address)
-#     return query
+@pytest.fixture(scope="function")
+async def random_query_db(test_tronpy_client) -> WalletQuery:
+    address = test_tronpy_client.generate_address().get("base58check_address")
+    query = WalletQuery(
+        address=address,
+        balance=decimal.Decimal("5148.03202"),
+        bandwidth=600,
+        energy=180000000000,
+    )
+
+    return query
