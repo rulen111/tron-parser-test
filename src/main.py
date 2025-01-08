@@ -5,9 +5,9 @@ from fastapi import FastAPI, Depends, HTTPException, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tronpy_client import process_query
-from db import init_db, get_session
-from models import WalletQuery, PydWalletQuery, PydWalletQueryBase
+from src.tronpy_client import update_query
+from src.db import init_db, get_session
+from src.models import WalletQuery, PydWalletQuery, PydWalletQueryBase
 
 
 @asynccontextmanager
@@ -61,7 +61,7 @@ async def create_query(
     db_session.add(query)
     await db_session.commit()
     await db_session.refresh(query)
-    background_tasks.add_task(process_query, query)
+    background_tasks.add_task(update_query, query, None, None)
 
     query = PydWalletQuery.model_validate(query)
 
