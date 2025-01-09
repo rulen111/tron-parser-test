@@ -12,7 +12,6 @@ from src.models import WalletQuery, PydWalletQuery, PydWalletQueryBase
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # await drop_db()
     await init_db()
     yield
 
@@ -30,7 +29,7 @@ async def get_queries(
     stmt = select(WalletQuery).limit(limit).offset(skip)
     result = list((await db_session.execute(stmt)).scalars().all())
 
-    return result
+    return [PydWalletQuery.model_validate(query) for query in result]
 
 
 @app.get("/queries/{query_id}")
@@ -43,9 +42,7 @@ async def get_queries(
     if not query:
         raise HTTPException(status_code=404, detail="Query not found")
 
-    query = PydWalletQuery.model_validate(query)
-
-    return query
+    return PydWalletQuery.model_validate(query)
 
 
 @app.post("/queries")
@@ -63,6 +60,4 @@ async def create_query(
     await db_session.refresh(query)
     background_tasks.add_task(update_query, query, None, None)
 
-    query = PydWalletQuery.model_validate(query)
-
-    return query
+    return PydWalletQuery.model_validate(query)
